@@ -5,12 +5,147 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Catálogo de Produtos</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin: 50px; }
-        h1 { color: #333; }
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            margin: 50px; 
+        }
+        h1 { 
+            color: #333; 
+        }
+        .product-entry {
+            margin: 10px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        input {
+            padding: 5px;
+            text-transform: uppercase;
+        }
+        .product-link {
+            text-decoration: none;
+            color: #0066cc;
+            padding: 5px 10px;
+        }
+        .product-link:hover {
+            text-decoration: underline;
+        }
+        #download-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #download-btn:hover {
+            background-color: #45a049;
+        }
+        iframe {
+            width: 300px;
+            height: 400px;
+            border: 1px solid #ccc;
+        }
     </style>
 </head>
 <body>
-    <h1>Bem-vindo ao Catálogo de Produtos</h1>
-    <p>Em breve, aqui teremos um catálogo interativo!</p>
+    <h1>Catálogo de Produtos</h1>
+    <div id="product-container">
+        <div class="product-entry">
+            <input type="text" maxlength="7" placeholder="Código do produto" pattern="[A-Z0-9]+" class="product-code">
+            <a href="#" class="product-link" target="product-preview">Ver produto</a>
+            <iframe name="product-preview" style="display: none;"></iframe>
+        </div>
+    </div>
+    <button id="download-btn" style="display: none;">Baixar Catálogo</button>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.getElementById('product-container');
+            const downloadBtn = document.getElementById('download-btn');
+            
+            function createNewEntry() {
+                const entry = document.createElement('div');
+                entry.className = 'product-entry';
+                entry.innerHTML = `
+                    <input type="text" maxlength="7" placeholder="Código do produto" pattern="[A-Z0-9]+" class="product-code">
+                    <a href="#" class="product-link" target="product-preview">Ver produto</a>
+                    <iframe name="product-preview" style="display: none;"></iframe>
+                `;
+                container.appendChild(entry);
+                return entry.querySelector('input');
+            }
+
+            function validateProductCode(code) {
+                return /^[A-Z0-9]{1,7}$/.test(code);
+            }
+
+            function handleInput(input) {
+                const link = input.nextElementSibling;
+                const iframe = link.nextElementSibling;
+                const code = input.value.toUpperCase();
+                input.value = code;
+
+                if (validateProductCode(code)) {
+                    const productUrl = `https://www.ifm.com/br/pt/product/${code}`;
+                    link.href = productUrl;
+                    link.style.display = 'block';
+                    iframe.style.display = 'block';
+                } else {
+                    link.href = '#';
+                    link.style.display = 'none';
+                    iframe.style.display = 'none';
+                }
+            }
+
+            function downloadCatalog() {
+                const products = [];
+                document.querySelectorAll('.product-code').forEach(input => {
+                    const code = input.value.trim();
+                    if (code && validateProductCode(code)) {
+                        products.push({
+                            code,
+                            url: `https://www.ifm.com/br/pt/product/${code}`
+                        });
+                    }
+                });
+
+                if (products.length > 0) {
+                    const csvContent = products
+                        .map(product => `${product.code};${product.url}`)
+                        .join('\n');
+                    
+                    const blob = new Blob([csvContent], { type: 'text/csv' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'catalogo_produtos.csv';
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                }
+            }
+
+            container.addEventListener('input', (e) => {
+                if (e.target.classList.contains('product-code')) {
+                    handleInput(e.target);
+                }
+            });
+
+            container.addEventListener('keypress', (e) => {
+                if (e.target.classList.contains('product-code') && e.key === 'Enter') {
+                    if (validateProductCode(e.target.value)) {
+                        const newInput = createNewEntry();
+                        newInput.focus();
+                        downloadBtn.style.display = 'inline-block';
+                    }
+                }
+            });
+
+            downloadBtn.addEventListener('click', downloadCatalog);
+        });
+    </script>
 </body>
 </html>
