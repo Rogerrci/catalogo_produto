@@ -154,20 +154,52 @@
                 return /^[A-Z0-9]{1,7}$/.test(code);
             }
 
-            async function downloadCatalog() {
-                const products = [];
-                document.querySelectorAll('.product-entry').forEach(entry => {
-                    const code = entry.querySelector('.product-code').value.trim();
-                    const quantity = entry.querySelector('.product-quantity').value.trim();
-                    
-                    if (code && validateProductCode(code)) {
-                        products.push({
-                            code,
-                            quantity
-                        });
-                    }
-                });
+async function downloadCatalog() {
+    const products = [];
+    document.querySelectorAll('.product-entry').forEach(entry => {
+        const code = entry.querySelector('.product-code').value.trim();
+        const quantity = entry.querySelector('.product-quantity').value.trim();
+        
+        if (code && validateProductCode(code)) {
+            products.push({
+                code,
+                quantity
+            });
+        }
+    });
 
+    if (products.length > 0) {
+        const csvContent = 'codigo;quantidade\n' + products
+            .map(product => `${product.code};${product.quantity}`)
+            .join('\n');
+        
+        try {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: 'catalogo_produto/data/produtos.csv',
+                startIn: 'desktop',
+                types: [{
+                    description: 'CSV Files',
+                    accept: {
+                        'text/csv': ['.csv'],
+                    },
+                }],
+            });
+            
+            const writable = await handle.createWritable();
+            await writable.write(csvContent);
+            await writable.close();
+        } catch (err) {
+            // Fallback for browsers that don't support File System Access API
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'catalogo_produto/data/produtos.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+    }
+}
                 if (products.length > 0) {
                     const csvContent = 'codigo;quantidade\n' + products
                         .map(product => `${product.code};${product.quantity}`)
