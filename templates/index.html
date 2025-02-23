@@ -4,63 +4,135 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Catálogo de Produtos</title>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --ifm-blue: #00318C;
+            --ifm-light-blue: #0047BB;
+            --ifm-gray: #666666;
+            --ifm-light-gray: #F5F5F5;
+        }
+        
         body { 
-            font-family: Arial, sans-serif; 
-            text-align: center; 
-            margin: 50px; 
+            font-family: 'Open Sans', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: white;
+            color: var(--ifm-gray);
         }
+
+        .header {
+            background-color: var(--ifm-blue);
+            color: white;
+            padding: 20px;
+            margin-bottom: 40px;
+        }
+
         h1 { 
-            color: #333; 
+            font-weight: 600;
+            font-size: 24px;
+            margin: 0;
         }
+
+        #product-container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
         .product-entry {
             margin: 10px 0;
             display: flex;
-            justify-content: center;
             align-items: center;
-            gap: 10px;
+            gap: 15px;
+            background-color: var(--ifm-light-gray);
+            padding: 15px;
+            border-radius: 4px;
         }
+
         input {
-            padding: 5px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Open Sans', Arial, sans-serif;
+            font-size: 14px;
+        }
+
+        .product-code {
             text-transform: uppercase;
+            width: 120px;
         }
-        .product-link {
-            text-decoration: none;
-            color: #0066cc;
-            padding: 5px 10px;
+
+        .product-quantity {
+            width: 100px;
         }
-        .product-link:hover {
-            text-decoration: underline;
+
+        input:focus {
+            outline: none;
+            border-color: var(--ifm-light-blue);
+            box-shadow: 0 0 0 2px rgba(0, 71, 187, 0.1);
         }
-        #download-btn {
-            margin-top: 20px;
-            padding: 10px 20px;
-            background-color: #4CAF50;
+
+        .button-container {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 30px auto;
+        }
+
+        .action-button {
+            padding: 12px 24px;
+            background-color: var(--ifm-light-blue);
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            font-family: 'Open Sans', Arial, sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            transition: background-color 0.2s;
         }
-        #download-btn:hover {
-            background-color: #45a049;
+
+        .action-button:hover {
+            background-color: var(--ifm-blue);
         }
-        iframe {
-            width: 300px;
-            height: 400px;
-            border: 1px solid #ccc;
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            .product-entry {
+                break-inside: avoid;
+                background-color: white;
+                border: 1px solid #ddd;
+            }
+
+            input {
+                border: none;
+                padding: 0;
+            }
+        }
+
+        input::placeholder {
+            color: #999;
+            font-size: 13px;
         }
     </style>
 </head>
 <body>
-    <h1>Catálogo de Produtos</h1>
+    <div class="header no-print">
+        <h1>Wish list</h1>
+    </div>
     <div id="product-container">
         <div class="product-entry">
             <input type="text" maxlength="7" placeholder="Código do produto" pattern="[A-Z0-9]+" class="product-code">
-            <a href="#" class="product-link" target="product-preview">Ver produto</a>
-            <iframe name="product-preview" style="display: none;"></iframe>
+            <input type="number" min="1" placeholder="Quantidade" class="product-quantity">
         </div>
     </div>
-    <button id="download-btn" style="display: none;">Baixar Catálogo</button>
+    <div class="button-container no-print">
+        <button id="download-btn" class="action-button" style="display: none;">Salvar CSV</button>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -72,79 +144,94 @@
                 entry.className = 'product-entry';
                 entry.innerHTML = `
                     <input type="text" maxlength="7" placeholder="Código do produto" pattern="[A-Z0-9]+" class="product-code">
-                    <a href="#" class="product-link" target="product-preview">Ver produto</a>
-                    <iframe name="product-preview" style="display: none;"></iframe>
+                    <input type="number" min="1" placeholder="Quantidade" class="product-quantity">
                 `;
                 container.appendChild(entry);
-                return entry.querySelector('input');
+                return entry.querySelector('.product-code');
             }
 
             function validateProductCode(code) {
                 return /^[A-Z0-9]{1,7}$/.test(code);
             }
 
-            function handleInput(input) {
-                const link = input.nextElementSibling;
-                const iframe = link.nextElementSibling;
-                const code = input.value.toUpperCase();
-                input.value = code;
-
-                if (validateProductCode(code)) {
-                    const productUrl = `https://www.ifm.com/br/pt/product/${code}`;
-                    link.href = productUrl;
-                    link.style.display = 'block';
-                    iframe.style.display = 'block';
-                } else {
-                    link.href = '#';
-                    link.style.display = 'none';
-                    iframe.style.display = 'none';
-                }
-            }
-
-            function downloadCatalog() {
+            async function downloadCatalog() {
                 const products = [];
-                document.querySelectorAll('.product-code').forEach(input => {
-                    const code = input.value.trim();
+                document.querySelectorAll('.product-entry').forEach(entry => {
+                    const code = entry.querySelector('.product-code').value.trim();
+                    const quantity = entry.querySelector('.product-quantity').value.trim();
+                    
                     if (code && validateProductCode(code)) {
                         products.push({
                             code,
-                            url: `https://www.ifm.com/br/pt/product/${code}`
+                            quantity
                         });
                     }
                 });
 
                 if (products.length > 0) {
-                    const csvContent = products
-                        .map(product => `${product.code};${product.url}`)
+                    const csvContent = 'codigo;quantidade\n' + products
+                        .map(product => `${product.code};${product.quantity}`)
                         .join('\n');
                     
-                    const blob = new Blob([csvContent], { type: 'text/csv' });
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'catalogo_produtos.csv';
-                    a.click();
-                    window.URL.revokeObjectURL(url);
+                    try {
+                        const handle = await window.showSaveFilePicker({
+                            suggestedName: 'produtos.csv',
+                            startIn: 'desktop',
+                            types: [{
+                                description: 'CSV Files',
+                                accept: {
+                                    'text/csv': ['.csv'],
+                                },
+                            }],
+                        });
+                        
+                        const writable = await handle.createWritable();
+                        await writable.write(csvContent);
+                        await writable.close();
+                    } catch (err) {
+                        // Fallback for browsers that don't support File System Access API
+                        const blob = new Blob([csvContent], { type: 'text/csv' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'produtos.csv';
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                    }
+                }
+            }
+
+            function handleEnterKey(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const currentEntry = e.target.closest('.product-entry');
+                    
+                    if (e.target.classList.contains('product-code')) {
+                        if (validateProductCode(e.target.value)) {
+                            currentEntry.querySelector('.product-quantity').focus();
+                        }
+                    } else if (e.target.classList.contains('product-quantity')) {
+                        if (e.target.value) {
+                            const newInput = createNewEntry();
+                            newInput.focus();
+                            downloadBtn.style.display = 'inline-block';
+                        }
+                    }
                 }
             }
 
             container.addEventListener('input', (e) => {
                 if (e.target.classList.contains('product-code')) {
-                    handleInput(e.target);
+                    e.target.value = e.target.value.toUpperCase();
                 }
             });
 
-            container.addEventListener('keypress', (e) => {
-                if (e.target.classList.contains('product-code') && e.key === 'Enter') {
-                    if (validateProductCode(e.target.value)) {
-                        const newInput = createNewEntry();
-                        newInput.focus();
-                        downloadBtn.style.display = 'inline-block';
-                    }
-                }
-            });
+            container.addEventListener('keypress', handleEnterKey);
 
             downloadBtn.addEventListener('click', downloadCatalog);
+
+            // Focus the first input on page load
+            document.querySelector('.product-code').focus();
         });
     </script>
 </body>
