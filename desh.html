@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador CSV</title>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ifm-blue: #00318C;
+            --ifm-light-blue: #0047BB;
+            --ifm-gray: #666666;
+            --ifm-light-gray: #F5F5F5;
+        }
+        
+        body { 
+            font-family: 'Open Sans', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: white;
+            color: var(--ifm-gray);
+            font-size: 12px;
+        }
+
+        .header {
+            background-color: var(--ifm-blue);
+            color: white;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+
+        h1 { 
+            font-weight: 600;
+            font-size: 16px;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 0 10px;
+        }
+
+        .split-view {
+            display: flex;
+            gap: 20px;
+            margin: 0 10px;
+        }
+
+        .file-view {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-input-container {
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .file-name {
+            margin: 10px 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--ifm-blue);
+        }
+
+        .csv-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            background-color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            font-size: 11px;
+        }
+
+        .csv-table th {
+            background-color: var(--ifm-light-gray);
+            padding: 6px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--ifm-blue);
+            font-size: 12px;
+        }
+
+        .csv-table td {
+            padding: 6px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .csv-table tr:hover {
+            background-color: var(--ifm-light-gray);
+        }
+
+        input[type="file"] {
+            padding: 5px;
+            border: 2px dashed var(--ifm-light-blue);
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 0;
+            font-size: 12px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        @media (max-width: 768px) {
+            .split-view {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Visualizador CSV</h1>
+    </div>
+    <div class="container">
+        <div class="file-input-container">
+            <input type="file" id="csvFiles" accept=".csv" multiple />
+        </div>
+        <div class="split-view">
+            <div class="file-view">
+                <div id="fileName1" class="file-name"></div>
+                <div class="table-container">
+                    <table id="csvTable1" class="csv-table"></table>
+                </div>
+            </div>
+            <div class="file-view">
+                <div id="fileName2" class="file-name"></div>
+                <div class="table-container">
+                    <table id="csvTable2" class="csv-table"></table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('csvFiles');
+            const fileNameDisplays = [
+                document.getElementById('fileName1'),
+                document.getElementById('fileName2')
+            ];
+            const csvTables = [
+                document.getElementById('csvTable1'),
+                document.getElementById('csvTable2')
+            ];
+
+            function adjustColumnWidths(table) {
+                const headers = table.getElementsByTagName('th');
+                for (let i = 0; i < headers.length; i++) {
+                    const cells = table.getElementsByTagName('td');
+                    let maxWidth = headers[i].offsetWidth;
+                    
+                    for (let j = i; j < cells.length; j += headers.length) {
+                        const cellWidth = cells[j].offsetWidth;
+                        maxWidth = Math.max(maxWidth, cellWidth);
+                    }
+                    
+                    const minWidth = Math.min(maxWidth + 10, 200); // Reduced padding and maximum width
+                    headers[i].style.minWidth = `${minWidth}px`;
+                }
+            }
+
+            function processFile(file, index) {
+                if (index > 1) return; // Only process first two files
+                
+                fileNameDisplays[index].textContent = `Arquivo: ${file.name}`;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const text = e.target.result;
+                    const rows = text.split('\n');
+                    let tableHTML = '';
+                    
+                    // Create header
+                    const headers = rows[0].split(';');
+                    tableHTML += '<thead><tr>';
+                    headers.forEach(header => {
+                        tableHTML += `<th>${header.trim()}</th>`;
+                    });
+                    tableHTML += '</tr></thead><tbody>';
+                    
+                    // Create data rows
+                    for (let i = 1; i < rows.length; i++) {
+                        if (rows[i].trim() !== '') {
+                            const cells = rows[i].split(';');
+                            tableHTML += '<tr>';
+                            cells.forEach(cell => {
+                                tableHTML += `<td>${cell.trim()}</td>`;
+                            });
+                            tableHTML += '</tr>';
+                        }
+                    }
+                    tableHTML += '</tbody>';
+                    
+                    csvTables[index].innerHTML = tableHTML;
+                    
+                    // Adjust column widths after table is populated
+                    setTimeout(() => adjustColumnWidths(csvTables[index]), 100);
+                };
+                reader.readAsText(file);
+            }
+
+            fileInput.addEventListener('change', function(e) {
+                const files = Array.from(e.target.files);
+                files.forEach((file, index) => processFile(file, index));
+            });
+
+            // Adjust column widths when window is resized
+            window.addEventListener('resize', () => {
+                csvTables.forEach(table => {
+                    if (table.innerHTML) {
+                        adjustColumnWidths(table);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
