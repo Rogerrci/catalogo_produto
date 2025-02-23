@@ -130,12 +130,24 @@
             <input type="number" min="1" placeholder="Quantidade" class="product-quantity">
         </div>
     </div>
-    <div class="button-container no-print">
-        <button id="download-btn" class="action-button" style="display: none;">Salvar CSV</button>
-    </div>
+<div class="button-container no-print">
+    <button id="download-btn" class="action-button" style="display: none;">Salvar CSV</button>
+    <button id="buscar-preco-btn" class="action-button">Buscar Preço</button>
+</div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
+<script>
+    document.getElementById('buscar-preco-btn').addEventListener('click', async function() {
+        try {
+            const response = await fetch('http://localhost:5000/buscar_preco', {
+                method: 'POST',
+            });
+            const result = await response.json();
+            alert(result.message);
+        } catch (error) {
+            alert('Erro ao buscar preços.');
+        }
+    });
+</script>        document.addEventListener('DOMContentLoaded', function() {
             const container = document.getElementById('product-container');
             const downloadBtn = document.getElementById('download-btn');
             
